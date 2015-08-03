@@ -21,7 +21,6 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
@@ -53,16 +52,10 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
     private Forecast mForecast;
     private GoogleApiClient mGoogleApiClient;
 
+    private static final double latitude = 40.8544226;
+    private static final double longitude = -73.9145254;
+
     private Location mLastLocation;
-
-    private static  final int LOCATION_REFRESH_TIME = 10 * 1000; // 10 seconds
-    private static final  int LOCATION_REFRESH_DISTANCE = 50 * 1000;
-
-    private static final String LATITUDE = "latitude";
-    private static final String LONGITUDE = "longitude";
-
-    private boolean mRequestingLocationUpdates = false;
-    private LocationRequest mLocationRequest;
 
     private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 1000;
 
@@ -106,8 +99,7 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
                 displayLocation();
             }
         });
-
-
+        getForecast(latitude, longitude);
         Log.d(TAG, "Main UI code is running!");
     }
 
@@ -158,10 +150,7 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
                 .getLastLocation(mGoogleApiClient);
 
         if (mLastLocation != null) {
-            double latitude = mLastLocation.getLatitude();
-            double longitude = mLastLocation.getLongitude();
-
-            getForecast(latitude, longitude);
+           Toast.makeText(this, "Location available", Toast.LENGTH_LONG).show();
 
         } else {
             Toast.makeText(this, "Location not available", Toast.LENGTH_LONG).show();
