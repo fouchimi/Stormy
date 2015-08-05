@@ -1,12 +1,8 @@
 package example.com.stormy.ui;
 
-import android.app.Dialog;
 import android.content.Context;
-import android.content.IntentSender;
+import android.content.Intent;
 import android.graphics.drawable.Drawable;
-import android.location.Location;
-import android.location.LocationListener;
-import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
@@ -18,10 +14,6 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GooglePlayServicesUtil;
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.LocationServices;
 import com.squareup.okhttp.Call;
 import com.squareup.okhttp.Callback;
 import com.squareup.okhttp.OkHttpClient;
@@ -37,6 +29,7 @@ import java.io.IOException;
 import butterknife.ButterKnife;
 import butterknife.InjectView;
 
+import butterknife.OnClick;
 import example.com.stormy.R;
 import example.com.stormy.weather.Current;
 import example.com.stormy.weather.Day;
@@ -44,39 +37,29 @@ import example.com.stormy.weather.Forecast;
 import example.com.stormy.weather.Hour;
 
 
-public class MainActivity extends ActionBarActivity implements GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener {
+public class MainActivity extends ActionBarActivity {
 
     public static final String TAG = MainActivity.class.getSimpleName();
 
     private Forecast mForecast;
-    private GoogleApiClient mGoogleApiClient;
 
     private static final double latitude = 40.8544226;
     private static final double longitude = -73.9145254;
 
-    private Location mLastLocation;
-
-    private final static int PLAY_SERVICES_RESOLUTION_REQUEST = 1000;
-
-    @InjectView(R.id.timeLabel)
-    TextView mTimeLabel;
-    @InjectView(R.id.temperatureLabel)
-    TextView mTemperatureLabel;
-    @InjectView(R.id.humidityValue)
-    TextView mHumidityValue;
-    @InjectView(R.id.precipValue)
-    TextView mPrecipValue;
-    @InjectView(R.id.summaryLabel)
-    TextView mSummaryLabel;
-    @InjectView(R.id.iconImageView)
-    ImageView mIconImageView;
-    @InjectView(R.id.refreshImageView)
-    ImageView mRefreshImageView;
-    @InjectView(R.id.progressBar)
-    ProgressBar mProgressBar;
+    public static final String DAILY_FORECAST = "daily forecast";
+    public static final String HOURLY_FORECAST = "hourly forecast";
 
 
+
+    @InjectView(R.id.timeLabel) TextView mTimeLabel;
+    @InjectView(R.id.temperatureLabel) TextView mTemperatureLabel;
+    @InjectView(R.id.humidityValue) TextView mHumidityValue;
+    @InjectView(R.id.precipValue) TextView mPrecipValue;
+    @InjectView(R.id.summaryLabel) TextView mSummaryLabel;
+    @InjectView(R.id.iconImageView) ImageView mIconImageView;
+    @InjectView(R.id.refreshImageView) ImageView mRefreshImageView;
+    @InjectView(R.id.progressBar) ProgressBar mProgressBar;
+    @InjectView(R.id.locationLabel) TextView mLocationLabel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -84,82 +67,27 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
         setContentView(R.layout.activity_main);
         ButterKnife.inject(this);
 
-        if (checkPlayServices()) {
-
-            // Building the GoogleApi client
-            buildGoogleApiClient();
-        }
-
-
         mProgressBar.setVisibility(View.INVISIBLE);
 
         mRefreshImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                displayLocation();
+                getForecast(latitude, longitude);
             }
         });
+
         getForecast(latitude, longitude);
+
+        Toast.makeText(this, "Coordinates" + latitude +", " + longitude ,
+                Toast.LENGTH_LONG).show();
+
         Log.d(TAG, "Main UI code is running!");
     }
 
-    @Override
-    protected void onStart() {
-        super.onStart();
-        if (mGoogleApiClient != null) {
-            mGoogleApiClient.connect();
-        }
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-
-        checkPlayServices();
-    }
-
-    private boolean checkPlayServices() {
-        int resultCode = GooglePlayServicesUtil
-                .isGooglePlayServicesAvailable(this);
-        if (resultCode != ConnectionResult.SUCCESS) {
-            if (GooglePlayServicesUtil.isUserRecoverableError(resultCode)) {
-                GooglePlayServicesUtil.getErrorDialog(resultCode, this,
-                        PLAY_SERVICES_RESOLUTION_REQUEST).show();
-            } else {
-                Toast.makeText(getApplicationContext(),
-                        "This device is not supported.", Toast.LENGTH_LONG)
-                        .show();
-                finish();
-            }
-            return false;
-        }
-        return true;
-    }
-
-
-    protected synchronized void buildGoogleApiClient() {
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .addConnectionCallbacks(this)
-                .addOnConnectionFailedListener(this)
-                .addApi(LocationServices.API).build();
-    }
-
-    private void displayLocation() {
-
-        mLastLocation = LocationServices.FusedLocationApi
-                .getLastLocation(mGoogleApiClient);
-
-        if (mLastLocation != null) {
-           Toast.makeText(this, "Location available", Toast.LENGTH_LONG).show();
-
-        } else {
-            Toast.makeText(this, "Location not available", Toast.LENGTH_LONG).show();
-        }
-    }
 
 
     private void getForecast(double latitude, double longitude) {
-        String apiKey = "7d26cff06ecaaf4d76b6a1f7e9f8e216";
+        String apiKey = "34d79f09568b60baccb9b4bef79d7c88";
         String forecastUrl = "https://api.forecast.io/forecast/" + apiKey +
                 "/" + latitude + "," + longitude;
 
@@ -233,6 +161,7 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
     private void updateDisplay() {
         Current current = mForecast.getCurrent();
         mTemperatureLabel.setText(current.getTemperature() + "");
+        mLocationLabel.setText(current.getTimeZone());
         mTimeLabel.setText("At " + current.getFormattedTime() + " it will be");
         mHumidityValue.setText(current.getHumidity() + "");
         mPrecipValue.setText(current.getPrecipChance() + "%");
@@ -319,7 +248,6 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
         return current;
     }
 
-
     private boolean isNetworkAvailable() {
         ConnectivityManager manager = (ConnectivityManager)
                 getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -337,22 +265,21 @@ public class MainActivity extends ActionBarActivity implements GoogleApiClient.C
         dialog.show(getFragmentManager(), "error_dialog");
     }
 
+    @OnClick(R.id.dailyButton)
+    public void startDailyActivity(View view) {
+        Intent intent = new Intent(this, DailyForecastActivity.class);
+        intent.putExtra(DAILY_FORECAST, mForecast.getDailyForecast());
+        startActivity(intent);
+    }
 
-    @Override
-    public void onConnected(Bundle bundle) {
+    @OnClick(R.id.hourlyButton)
+    public void startHourlyActivity(View view) {
+        Intent intent = new Intent(this, HourlyForecastActivity.class);
+        intent.putExtra(HOURLY_FORECAST, mForecast.getHourlyForecast());
+        startActivity(intent);
 
     }
 
-    @Override
-    public void onConnectionSuspended(int i) {
-
-    }
-
-    @Override
-    public void onConnectionFailed(ConnectionResult connectionResult) {
-        Log.i(TAG, "Connection failed: ConnectionResult.getErrorCode() = "
-                + connectionResult.getErrorCode());
-    }
 }
 
 
